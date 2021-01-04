@@ -6,7 +6,8 @@ import CheckoutProduct from "./CheckoutProduct";
 import "./Payment.css";
 import { getBasketTotal } from "./reducer";
 import { useStateValue } from "./StateProvider";
-import { axios } from "axios";
+import axios from "./axios";
+import { db } from "./firebase";
 
 function Payment() {
   const history = useHistory();
@@ -25,21 +26,25 @@ function Payment() {
   //6:37:06
 
   useEffect(() => {
-    //generates the special stripe secret which allows us to chargea customer
+    // generate the special stripe secret which allows us to charge a customer
     const getClientSecret = async () => {
       const response = await axios({
         method: "post",
         // Stripe expects the total in a currencies subunits
-        url: `/payment/create?total=${getBasketTotal(basket) * 100}`,
+        url: `/payments/create?total=${getBasketTotal(basket) * 100}`,
       });
       setClientSecret(response.data.clientSecret);
     };
+    console.log("OOOOOOOOOOO>>>>>>>", getClientSecret());
+    getClientSecret();
   }, [basket]);
+
+  console.log("Client secret >>>>>>>>>>>>", clientSecret);
 
   const handleSubmit = async (event) => {
     //do all the stripe stuff
     event.preventDefault();
-    setProcessing("...");
+    setProcessing(true);
 
     const payload = await stripe
       .confirmCardPayment(clientSecret, {
@@ -49,10 +54,22 @@ function Payment() {
       })
       .then(({ paymentIntent }) => {
         // paymentIntent = payment confirmation
+        db.collection("users")
+          .doc(user?.uid)
+          .collection("orders")
+          .doc(paymentIntent.id)
+          .set({
+            basket: basket,
+            amount: paymentIntent.amount,
+            created: paymentIntent.created,
+          });
         setSucceeded(true);
         setError(null);
-        setProcessing("");
+        setProcessing(false);
 
+        dispatch({
+          type: "EMPTY_BASKET",
+        });
         history.replace("/orders");
       });
   };
@@ -113,7 +130,7 @@ function Payment() {
                   prefix={"$"}
                 />
                 <button disabled={processing || disabled || succeeded}>
-                  <span>{processing ? <p>Processing...</p> : "Buy Now"}</span>
+                  <span>{processing ? <p>Processing</p> : "Buy Now"}</span>
                 </button>
               </div>
               {/** if there is an error, only then show the error div */}
