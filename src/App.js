@@ -10,11 +10,12 @@ import { useStateValue } from "./StateProvider";
 import Payment from "./Payment";
 import { loadStripe } from "@stripe/stripe-js";
 import { Elements } from "@stripe/react-stripe-js";
+import Orders from "./Orders";
 
 const promise = loadStripe("pk_test_S8yOMccxvqAbUdoTuYUzUArG");
 
 function App() {
-  const [{}, dispatch] = useStateValue();
+  const [{ basket, user }, dispatch] = useStateValue();
 
   useEffect(() => {
     // will only run once when the app component loads ...
@@ -36,11 +37,14 @@ function App() {
     });
   }, []);
   return (
-    // BEM convention
     <Router>
       <div className="app">
         <Switch>
-          <Route exact path="/login">
+          <Route path="/orders">
+            <Header />
+            <Orders />
+          </Route>
+          <Route path="/login">
             <Login />
           </Route>
           <Route path="/checkout">
@@ -53,7 +57,7 @@ function App() {
               <Payment />
             </Elements>
           </Route>
-          <Route exact path="/">
+          <Route path="/">
             <Header />
             <Home />
           </Route>
